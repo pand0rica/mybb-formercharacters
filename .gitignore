@@ -1,0 +1,22 @@
+# IDE
+.vscode/
+.idea/
+
+# SFTP credentials (NEVER commit!)
+.vscode/sftp.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PHP
+*.log
+
+# Forum post (not source code)
+PLUGIN_POST.html
+
+# MyBB cache/temp
+cache/
+
+# Test data (contains hashed credentials)
+docs/test_characters.sql
