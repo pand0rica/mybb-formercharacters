@@ -145,12 +145,8 @@ if($mybb->get_input('recover', MyBB::INPUT_INT) && $mybb->get_input('aid', MyBB:
         return;
     }
 
-    // POST: perform recovery
-    if(!verify_post_check($mybb->get_input('my_post_key'), true))
-    {
-        flash_message($lang->char_archive_invalid_post, 'error');
-        admin_redirect('index.php?module=tools-char_archive');
-    }
+    // POST: perform recovery – my_post_key was already validated by admin/index.php
+    // (an invalid key turns the request into GET and lands in the confirmation above).
     // Rely on MyBB admin permissions
 
     require_once MYBB_ROOT . 'inc/plugins/char_archive.php';

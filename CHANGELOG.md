@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - **ACP recovery could never be executed.** The ACP module read `$mybb->post[...]`, which
   does not exist in MyBB 1.8, so the confirmation form always reappeared. It now uses
-  `$mybb->get_input()` and checks the return value of `verify_post_check()`.
+  `$mybb->get_input()`; the post key is validated natively by `admin/index.php` (POST only).
 - **ACP templates were double-escaped.** `addslashes()` was applied on top of
   `$templates->get()` (which already escapes for `eval()`), breaking quotes in the ACP output.
 - Direct `$mybb->input[...]` reads in ACP, ModCP, UserCP and hooks replaced by `get_input()`.
