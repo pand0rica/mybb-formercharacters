@@ -24,6 +24,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Direct `$mybb->input[...]` reads in ACP, ModCP, UserCP and hooks replaced by `get_input()`.
 - German text “einen Moderator informieren” → “das Team informieren”.
 
+### Removed
+- **newreply post-key workaround.** `char_archive_global_start()` rewrote
+  `$_POST/$_REQUEST/$mybb->input['my_post_key']` on every reply POST to repair malformed keys
+  from another source. It interfered with MyBB's own CSRF handling and had nothing to do with
+  the archive; the hook and `char_archive_normalize_newreply_post_key()` are gone.
+
 ### Changed
 - Plugin website set; README documents the debug settings; `.claudeignore` added.
 

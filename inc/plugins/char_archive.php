@@ -77,8 +77,6 @@ if(isset($plugins))
         'has_post_key' => isset($_POST['my_post_key']) ? 1 : 0,
     ));
 
-    $plugins->add_hook('global_start', 'char_archive_global_start');
-
     // Fires inside UserDataHandler::delete_user() before any data is removed.
     // Covers all deletion paths: ACP single, ACP bulk inline, user merge, frontend.
     $plugins->add_hook('datahandler_user_delete_start', 'char_archive_hook_datahandler_delete_start');
@@ -147,95 +145,6 @@ function char_archive_usercp_menu()
     }
 }
 
-function char_archive_global_start()
-{
-    global $mybb;
-
-    $script = defined('THIS_SCRIPT') ? (string)THIS_SCRIPT : '';
-    $request_uri = isset($_SERVER['REQUEST_URI']) ? (string)$_SERVER['REQUEST_URI'] : '';
-    $is_newreply_request = ($script === 'newreply.php' || strpos($request_uri, 'newreply.php') !== false);
-
-    if(!$is_newreply_request)
-    {
-        return;
-    }
-
-    if(isset($_SERVER['REQUEST_METHOD']) && strtolower((string)$_SERVER['REQUEST_METHOD']) === 'post')
-    {
-        char_archive_normalize_newreply_post_key($mybb);
-    }
-
-    char_archive_debug_log('hook:global_start:newreply', char_archive_debug_request_context(array(
-        'get_keys' => (!empty($_GET) && is_array($_GET)) ? array_keys($_GET) : array(),
-    )));
-}
-
-function char_archive_normalize_newreply_post_key(&$mybb)
-{
-    $raw_post_key = isset($_POST['my_post_key']) ? (string)$_POST['my_post_key'] : '';
-    if($raw_post_key === '')
-    {
-        return;
-    }
-
-    // First pass: decode entities and trim common wrapper chars/whitespace.
-    $decoded_post_key = html_entity_decode($raw_post_key, ENT_QUOTES, 'UTF-8');
-    $normalized_post_key = trim($decoded_post_key, "\"'\\ \t\n\r\0\x0B");
-
-    // Second pass: robust extraction if additional non-hex wrappers are present.
-    if(!preg_match('/^[a-f0-9]{32}$/i', $normalized_post_key))
-    {
-        $hex_matches = array();
-        preg_match_all('/[a-f0-9]{32}/i', $normalized_post_key, $hex_matches);
-        if(!empty($hex_matches[0]) && count($hex_matches[0]) === 1)
-        {
-            $normalized_post_key = (string)$hex_matches[0][0];
-        }
-    }
-
-    if($normalized_post_key === $raw_post_key)
-    {
-        char_archive_debug_log('newreply:post_key_normalization_noop', array(
-            'raw_length' => strlen($raw_post_key),
-            'raw_prefix' => substr($raw_post_key, 0, 4),
-            'raw_suffix' => substr($raw_post_key, -4),
-        ));
-        return;
-    }
-
-    if(!preg_match('/^[a-f0-9]{32}$/i', $normalized_post_key))
-    {
-        char_archive_debug_log('newreply:post_key_normalization_skipped', array(
-            'raw_length' => strlen($raw_post_key),
-            'normalized_length' => strlen($normalized_post_key),
-            'raw_prefix' => substr($raw_post_key, 0, 4),
-            'raw_suffix' => substr($raw_post_key, -4),
-            'normalized_prefix' => substr($normalized_post_key, 0, 4),
-            'normalized_suffix' => substr($normalized_post_key, -4),
-        ));
-        return;
-    }
-
-    $_POST['my_post_key'] = $normalized_post_key;
-    $_REQUEST['my_post_key'] = $normalized_post_key;
-    if(isset($mybb->input) && is_array($mybb->input))
-    {
-        $mybb->input['my_post_key'] = $normalized_post_key;
-    }
-    if(isset($mybb->post) && is_array($mybb->post))
-    {
-        $mybb->post['my_post_key'] = $normalized_post_key;
-    }
-
-    char_archive_debug_log('newreply:post_key_normalized', array(
-        'raw_length' => strlen($raw_post_key),
-        'normalized_length' => strlen($normalized_post_key),
-        'raw_prefix' => substr($raw_post_key, 0, 4),
-        'raw_suffix' => substr($raw_post_key, -4),
-    ));
-}
-
-/* Installation: create archive table */
 function char_archive_install()
 {
     global $db;
