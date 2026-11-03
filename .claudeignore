@@ -1,0 +1,6 @@
+# Hält Sensibles/Rauschen aus dem KI-Kontext.
+.vscode/sftp.json
+*.sql
+*.dump
+*.bak
+docs/screenshots/*.png

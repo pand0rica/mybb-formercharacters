@@ -11,7 +11,7 @@ function char_archive_info()
     return array(
         'name' => 'Character Archive',
         'description' => 'Archive former RPG characters and allow restore.',
-        'website' => '',
+        'website' => 'https://github.com/pand0rica/mybb-formercharacters',
         'author' => 'pand0rica',
         'authorsite' => 'https://github.com/pand0rica',
         'version' => '0.2',
@@ -21,36 +21,16 @@ function char_archive_info()
 
 function char_archive_debug_bootstrap_enabled()
 {
-    if(isset($GLOBALS['mybb']) && is_object($GLOBALS['mybb']) && isset($GLOBALS['mybb']->settings['char_archive_debug_enabled']) && (string)$GLOBALS['mybb']->settings['char_archive_debug_enabled'] === '1')
+    // Debug nur über das Admin-Setting bzw. die Konstante – nie per Request/Cookie,
+    // sonst kann jede Person das Logging (inkl. Logdatei im cache/-Ordner) einschalten.
+    if(defined('CHAR_ARCHIVE_DEBUG') && CHAR_ARCHIVE_DEBUG)
     {
         return true;
     }
 
-    if(isset($_REQUEST['char_archive_debug']))
-    {
-        $toggle = (string)$_REQUEST['char_archive_debug'];
-        if($toggle === '1')
-        {
-            return true;
-        }
-        if($toggle === '0')
-        {
-            return false;
-        }
-    }
-
-    if(!empty($_COOKIE) && is_array($_COOKIE))
-    {
-        foreach($_COOKIE as $cookie_name => $cookie_value)
-        {
-            if(substr((string)$cookie_name, -18) === 'char_archive_debug' && (string)$cookie_value === '1')
-            {
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return isset($GLOBALS['mybb']) && is_object($GLOBALS['mybb'])
+        && isset($GLOBALS['mybb']->settings['char_archive_debug_enabled'])
+        && (string)$GLOBALS['mybb']->settings['char_archive_debug_enabled'] === '1';
 }
 
 function char_archive_debug_bootstrap_log($message, $context = array())
@@ -146,10 +126,10 @@ function char_archive_usercp_start()
     global $mybb;
 
     char_archive_debug_log('hook:usercp_start', char_archive_debug_request_context(array(
-        'input_action' => isset($mybb->input['action']) ? (string)$mybb->input['action'] : '',
+        'input_action' => $mybb->get_input('action'),
     )));
 
-    if($mybb->input['action'] == 'char_archive')
+    if($mybb->get_input('action') === 'char_archive')
     {
         require_once MYBB_ROOT . 'inc/char_archive_ucp.php';
         char_archive_ucp_handle();
@@ -763,13 +743,13 @@ function char_archive_modcp_start()
     global $mybb, $lang;
 
     char_archive_debug_log('hook:modcp_start', char_archive_debug_request_context(array(
-        'input_action' => isset($mybb->input['action']) ? (string)$mybb->input['action'] : '',
+        'input_action' => $mybb->get_input('action'),
     )));
 
     // Load language for all ModCP pages so the injected nav label is always available.
     $lang->load('char_archive');
 
-    if($mybb->input['action'] == 'char_archive')
+    if($mybb->get_input('action') === 'char_archive')
     {
         require_once MYBB_ROOT . 'inc/char_archive_modcp.php';
         char_archive_modcp_handle();
@@ -1098,73 +1078,8 @@ function char_archive_table_has_column($table_name, $column)
 
 function char_archive_debug_enabled()
 {
-    if(defined('CHAR_ARCHIVE_DEBUG') && CHAR_ARCHIVE_DEBUG)
-    {
-        return true;
-    }
-
-    if(!isset($GLOBALS['mybb']) || !is_object($GLOBALS['mybb']))
-    {
-        return false;
-    }
-
-    $mybb = $GLOBALS['mybb'];
-
-    if(isset($mybb->settings['char_archive_debug_enabled']) && (string)$mybb->settings['char_archive_debug_enabled'] === '1')
-    {
-        return true;
-    }
-
-    $user = isset($mybb->user) && is_array($mybb->user) ? $mybb->user : array();
-    $uid = intval($user['uid'] ?? 0);
-    if($uid <= 0)
-    {
-        return false;
-    }
-
-    // Support malformed URL form like: misc.php?action=playerdirectory?char_archive_debug=1
-    // by extracting query-like suffix from action if present.
-    if(isset($mybb->input['action']) && is_string($mybb->input['action']) && strpos($mybb->input['action'], '?') !== false)
-    {
-        $action_parts = explode('?', $mybb->input['action'], 2);
-        if(!empty($action_parts[1]))
-        {
-            $suffix_input = array();
-            parse_str($action_parts[1], $suffix_input);
-            if(isset($suffix_input['char_archive_debug']) && !isset($mybb->input['char_archive_debug']))
-            {
-                $mybb->input['char_archive_debug'] = (string)$suffix_input['char_archive_debug'];
-            }
-        }
-    }
-
-    // URL toggle (works from UCP/ModCP/ACP entrypoints)
-    if(isset($mybb->input['char_archive_debug']))
-    {
-        $toggle = (string)$mybb->input['char_archive_debug'];
-
-        if($toggle === '1')
-        {
-            if(function_exists('my_setcookie'))
-            {
-                my_setcookie('char_archive_debug', '1', 3600);
-            }
-            return true;
-        }
-
-        if($toggle === '0')
-        {
-            if(function_exists('my_setcookie'))
-            {
-                my_setcookie('char_archive_debug', '', -1);
-            }
-            return false;
-        }
-    }
-
-    // Keep debug active across POST forms after the initial URL toggle.
-    $cookie_enabled = isset($mybb->cookies['char_archive_debug']) && (string)$mybb->cookies['char_archive_debug'] === '1';
-    return $cookie_enabled;
+    // Nur Konstante oder Admin-Setting – keine URL-/Cookie-Schalter (siehe bootstrap).
+    return char_archive_debug_bootstrap_enabled();
 }
 
 function char_archive_debug_echo($line)

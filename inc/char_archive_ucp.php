@@ -264,8 +264,8 @@ function char_archive_ucp_handle()
     }
 
     $status_message = '';
-    if(!empty($mybb->input['ca_msg'])) {
-        $status_message = htmlspecialchars_uni((string)$mybb->input['ca_msg']);
+    if($mybb->get_input('ca_msg') !== '') {
+        $status_message = htmlspecialchars_uni($mybb->get_input('ca_msg'));
     }
 
     $raw_post = (isset($_POST) && is_array($_POST)) ? $_POST : array();
@@ -284,8 +284,8 @@ function char_archive_ucp_handle()
         $submitted_post_key = '';
         if(isset($raw_post['my_post_key'])) {
             $submitted_post_key = trim((string)$raw_post['my_post_key']);
-        } elseif(isset($mybb->post['my_post_key'])) {
-            $submitted_post_key = trim((string)$mybb->post['my_post_key']);
+        } else {
+            $submitted_post_key = trim($mybb->get_input('my_post_key'));
         }
         $submitted_post_key = trim($submitted_post_key, "\"'\\ ");
 
@@ -529,7 +529,7 @@ function char_archive_ucp_handle()
         return;
     }
 
-    $view_aid = isset($mybb->input['view']) ? (int)$mybb->input['view'] : 0;
+    $view_aid = $mybb->get_input('view', MyBB::INPUT_INT);
     if($view_aid > 0)
     {
         $entry = $db->fetch_array($db->simple_select('rpg_char_archive', '*', "aid={$view_aid} AND main_uid={$uid}", array('limit' => 1)));

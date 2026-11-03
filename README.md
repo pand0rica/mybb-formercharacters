@@ -22,7 +22,7 @@ A MyBB 1.8 plugin that archives former RPG sub-characters when they are deleted,
    - `inc/languages/deutsch_du/char_archive.lang.php`
    - `inc/languages/deutsch_du/admin/char_archive.lang.php`
 
-2. **Activate** – go to ACP → Configuration → Plugins → activate **Character Archive**.
+2. **Install & Activate** – go to ACP → Configuration → Plugins → click **Install & Activate** next to **Character Archive**.
    The archive table `rpg_char_archive` and plugin settings are created automatically.
 
 3. **Configure** – go to ACP → Configuration → Settings → **Character Archive** and adjust the settings.
@@ -33,6 +33,8 @@ A MyBB 1.8 plugin that archives former RPG sub-characters when they are deleted,
 |---|---|
 | **Groups allowed to approve archive entries** | User groups that can see pending archive requests in the ModCP and approve them. Default: groups 3, 4, 6. |
 | **Archived playerstat text: profile field** | Choose a field from [application_ucp](https://github.com/katjalennartz/application_ucp) whose content is shown below the stats of archived characters in the Spielerverzeichnis playerstat block. Falls back to the archive entry's notes field if empty. Only visible if `application_ucp` is installed. |
+| **Debug mode** | Writes a detailed debug log (PHP error log and `cache/char_archive_debug.log`). Only for troubleshooting – turn it off again afterwards and delete the log file. Default: off. |
+| **Debug: verbose field ID** | Additional field-level detail in the debug log. Default: off. |
 
 ## Usage
 

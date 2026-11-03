@@ -95,16 +95,16 @@ $sync_html = '';
 // (super-admin requirement already enforced above)
 
 // Handle approval actions
-if($mybb->input['approve'] && intval($mybb->input['aid']))
+if($mybb->get_input('approve') && $mybb->get_input('aid', MyBB::INPUT_INT))
 {
     flash_message($lang->char_archive_admin_approve_via_modcp, 'error');
     admin_redirect('index.php?module=tools-char_archive');
 }
 
 // Recover confirmation and action
-if(intval($mybb->input['recover']) && intval($mybb->input['aid']))
+if($mybb->get_input('recover', MyBB::INPUT_INT) && $mybb->get_input('aid', MyBB::INPUT_INT))
 {
-    $aid = intval($mybb->input['aid']);
+    $aid = $mybb->get_input('aid', MyBB::INPUT_INT);
     require_once MYBB_ROOT . 'inc/plugins/char_archive.php';
     if(!char_archive_table_exists())
     {
@@ -120,7 +120,7 @@ if(intval($mybb->input['recover']) && intval($mybb->input['aid']))
     }
 
     // Show confirmation form if not posted
-    if($mybb->request_method != 'post' || !isset($mybb->post['do_recover']))
+    if($mybb->request_method != 'post' || $mybb->get_input('do_recover') === '')
     {
         if(intval($entry['approved']) == 0)
         {
@@ -134,7 +134,7 @@ if(intval($mybb->input['recover']) && intval($mybb->input['aid']))
         }
 
         // render confirm template via eval inside ACP layout
-        $confirm_tpl = addslashes($templates->get('char_archive_admin_confirm'));
+        $confirm_tpl = $templates->get('char_archive_admin_confirm');
         $username = htmlspecialchars_uni($entry['username']);
         $old_uid = intval($entry['old_uid']);
         $my_post_key = $mybb->post_code;
@@ -146,7 +146,7 @@ if(intval($mybb->input['recover']) && intval($mybb->input['aid']))
     }
 
     // POST: perform recovery
-    if(!isset($mybb->post['my_post_key']) || !verify_post_check($mybb->post['my_post_key']))
+    if(!verify_post_check($mybb->get_input('my_post_key'), true))
     {
         flash_message($lang->char_archive_invalid_post, 'error');
         admin_redirect('index.php?module=tools-char_archive');
@@ -245,7 +245,7 @@ $lang->load('char_archive');
 $rows_html = '';
 if(!empty($pending))
 {
-    $row_tpl = addslashes($templates->get('char_archive_admin_row'));
+    $row_tpl = $templates->get('char_archive_admin_row');
     foreach($pending as $p)
     {
         $aid = intval($p['aid']);
@@ -253,7 +253,7 @@ if(!empty($pending))
         $main_uid = intval($p['main_uid']);
         $old_uid = intval($p['old_uid']);
         $archived_at = date('Y-m-d H:i', $p['archived_at']);
-        $notes = (string)$p['notes'];
+        $notes = nl2br(htmlspecialchars_uni((string)$p['notes']));
         $snapshot_html = char_archive_admin_render_ucp_snapshot_html((string)$p['application_ucp_data']);
         if($snapshot_html !== '')
         {
@@ -262,7 +262,7 @@ if(!empty($pending))
         $actions = '<a href="modcp.php?action=char_archive">' . htmlspecialchars($lang->char_archive_admin_open_modcp, ENT_QUOTES, 'UTF-8') . '</a>';
         eval("\$rows_html .= \"" . $row_tpl . "\";");
     }
-    $pending_table_tpl = addslashes($templates->get('char_archive_admin_pending_table'));
+    $pending_table_tpl = $templates->get('char_archive_admin_pending_table');
     $rows = $rows_html;
     eval("\$pending_table = \"" . $pending_table_tpl . "\";");
 }
@@ -272,7 +272,7 @@ else
 }
 
 // Render main admin template via eval
-$main_tpl = addslashes($templates->get('char_archive_admin_main'));
+$main_tpl = $templates->get('char_archive_admin_main');
 $sync_form = $sync_html;
 eval("\$out = \"" . $main_tpl . "\";");
 $page->output_header($lang->char_archive_title);
