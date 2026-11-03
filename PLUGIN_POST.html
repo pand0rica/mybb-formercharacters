@@ -1,0 +1,96 @@
+[size=x-large][b]Character Archive[/b][/size]
+[i]Version 0.2[/i] – Ehemalige Charaktere archivieren statt verlieren – mit Freigabe durch das Team und vollständiger Wiederherstellung.
+
+[size=large][b]Worum geht's?[/b][/size]
+
+Wird ein Charakter-Account gelöscht, ist meist alles weg: Name, Steckbrief, Profilfelder, Statistik. Character Archive legt beim Löschen automatisch einen Archiveintrag an. Ehemalige Charaktere bleiben so auffindbar und lassen sich später wiederbeleben – samt Beiträgen und Logbook-Einträgen.
+
+[size=large][b]Highlights[/b][/size]
+
+[list]
+[*] Automatisches Archiv beim Löschen eines Charakter-Accounts, egal auf welchem Weg
+[*] Ehemalige Charaktere auch von Hand nachtragen, mit Freigabe durch das Team
+[*] Wiederherstellung als neuer Account, inklusive Beiträgen und Logbook-Einträgen
+[*] Steckbriefdaten aus application_ucp werden mitgesichert
+[/list]
+
+[size=large][b]Was das Plugin alles kann[/b][/size]
+
+[b]Für Mitglieder[/b]
+[list]
+[*][b]Archivierte Charaktere[/b] – Liste aller ehemaligen Charaktere deines Accounts mit Status (wartet / freigegeben / wiederhergestellt) und Archivdatum. [i](Benutzer-CP → Archivierte Charaktere)[/i]
+[*][b]Charakter nachtragen[/b] – Name, optional alte UID und Notizen; der Eintrag wartet danach auf die Freigabe. Solange er wartet, kannst du ihn bearbeiten oder zurückziehen. [i](Benutzer-CP → Archivierte Charaktere)[/i]
+[*][b]Details ansehen[/b] – Registrierung, Beiträge, Themen, archivierte Profilfelder und Steckbrief sowie Links zum alten Logbook und zur Beziehungsseite. [i](Benutzer-CP)[/i]
+[*][b]Selbst wiederherstellen[/b] – Freigegebene Charaktere stellst du mit einem Klick wieder her. Es entsteht ein neuer Account, du bekommst ein temporäres Passwort oder den Hinweis, dass das Passwort deines Hauptaccounts übernommen wurde. [i](Benutzer-CP)[/i]
+[/list]
+
+[b]Für Team & Moderation[/b]
+[list]
+[*][b]Freigaben[/b] – Nachgetragene Charaktere prüfen und freigeben; die Person bekommt dazu einen Alert. [i](ModCP → Ausstehende Archiv-Anfragen)[/i]
+[*][b]Hinweis auf der Startseite[/b] – Solange Anfragen warten, sieht das Team einen Hinweis. [i](Startseite)[/i]
+[/list]
+
+[b]Für Administratoren[/b]
+[list]
+[*][b]Wiederherstellung im ACP[/b] – Freigegebene Einträge als neuen Account wiederherstellen; Beiträge, Themen und Logbook-Einträge werden auf die neue UID umgeschrieben, der Hauptaccount bekommt Alert und E-Mail. [i](ACP → Werkzeuge → Character Archive)[/i]
+[*][b]Offene Anfragen im Blick[/b] – Die Werkzeugseite listet alle wartenden Einträge mit Link zur Freigabe im ModCP. [i](ACP → Werkzeuge → Character Archive)[/i]
+[/list]
+
+[b]Läuft automatisch[/b]
+[list]
+[*][b]Archivieren beim Löschen[/b] – Wird ein Charakter-Account gelöscht – einzeln oder gesammelt im ACP, durch Zusammenführen oder selbst –, sichert das Plugin Name, alte UID, Registrierung, Beitrags- und Themenzahl, Avatar, Profilfelder und Steckbrief. Der Hauptaccount bekommt einen Alert.
+[/list]
+
+[b]Zusammenspiel mit anderen Plugins[/b]
+[list]
+[*][b]Enhanced Account Switcher[/b] – Ordnet archivierte Charaktere dem Hauptaccount zu.
+[*][b]MyAlerts[/b] – Benachrichtigungen bei Archivierung, Freigabe und Wiederherstellung; ohne MyAlerts entfallen nur diese.
+[*][b]application_ucp[/b] – Steckbriefdaten werden mitarchiviert und angezeigt.
+[*][b]Spielerverzeichnis[/b] – Archivierte Charaktere erscheinen in der Spielerstatistik, auf Wunsch mit einem Steckbrieffeld als Text.
+[*][b]Logbook[/b] – Bei der Wiederherstellung werden Logbook-Einträge mit umgezogen.
+[/list]
+
+[size=large][b]So sieht's aus[/b][/size]
+
+[i]Screenshot folgt[/i] – Archivierte Charaktere im Benutzer-CP
+[i]Screenshot folgt[/i] – Charakter nachtragen
+[i]Screenshot folgt[/i] – Freigaben im ModCP
+
+[size=large][b]Einstellungen[/b][/size]
+
+[list]
+[*][b]Gruppen, die Archiveinträge freigeben dürfen[/b] – Diese Gruppen sehen die Anfragen im ModCP. [i](Standard: Super-Moderatoren, Administratoren, Moderatoren)[/i]
+[*][b]Text für archivierte Charaktere im Spielerverzeichnis[/b] – Steckbrieffeld aus application_ucp, das unter der Statistik erscheint; sonst die Notizen. [i](nur mit application_ucp)[/i]
+[*][b]Debug-Modus[/b] – Ausführliches Protokoll zur Fehlersuche. [i](Standard: Nein)[/i]
+[/list]
+
+[size=large][b]Voraussetzungen[/b][/size]
+
+[list]
+[*] MyBB 1.8.x
+[*] PHP 7.4 oder 8.x
+[*] Optional: Enhanced Account Switcher, MyAlerts, application_ucp, Spielerverzeichnis, Logbook
+[/list]
+
+[size=large][b]Installation[/b][/size]
+
+[list=1]
+[*] Dateien in das MyBB-Stammverzeichnis kopieren (Ordnerstruktur beibehalten)
+[*] ACP → Konfiguration → Plugins → Character Archive → Installieren & aktivieren
+[*] ACP → Konfiguration → Einstellungen → Character Archive → Gruppen für die Freigabe festlegen
+[/list]
+
+[size=large][b]Grenzen & Ausblick[/b][/size]
+
+Das Plugin ist noch eine frühe Version (0.2). Archiviert wird ab der Installation; Charaktere, die vorher gelöscht wurden, trägst du von Hand nach. Bei der Wiederherstellung entsteht immer ein neuer Account mit neuer UID – Verweise anderer Plugins auf die alte UID werden nur für Beiträge, Themen und Logbook umgeschrieben.
+
+[size=large][b]Download & Quellcode[/b][/size]
+
+&raquo; [url=https://github.com/pand0rica/mybb-formercharacters]GitHub: pand0rica/mybb-formercharacters[/url] – Änderungen im [url=https://github.com/pand0rica/mybb-formercharacters/blob/main/CHANGELOG.md]Changelog[/url], Lizenz GPL-3.0
+
+[size=large][b]Unterstützung[/b][/size]
+
+<i class="cp cp-tea"></i> Wenn dir das Plugin gefällt, kannst du mir gerne einen Tee spendieren: [url=https://ko-fi.com/pand0rica]ko-fi.com/pand0rica[/url]
+
+[size=small]Fragen, Bugs oder Feature-Wünsche gerne als GitHub Issue melden oder hier im Thread.
+Ich freue mich, wenn ihr mir den Link dalasst, wo das Plugin verwendet wird.[/size]
