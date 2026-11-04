@@ -133,14 +133,22 @@ if($mybb->get_input('recover', MyBB::INPUT_INT) && $mybb->get_input('aid', MyBB:
             admin_redirect('index.php?module=tools-char_archive');
         }
 
-        // render confirm template via eval inside ACP layout
-        $confirm_tpl = $templates->get('char_archive_admin_confirm');
-        $username = htmlspecialchars_uni($entry['username']);
-        $old_uid = intval($entry['old_uid']);
-        $my_post_key = $mybb->post_code;
-        eval("\$confirm = \"" . $confirm_tpl . "\";");
         $page->output_header($lang->char_archive_title);
-        echo $confirm;
+        $form = new Form('index.php?module=tools-char_archive&amp;recover=1&amp;aid=' . $aid, 'post');
+        $form_container = new FormContainer($lang->char_archive_confirm_title);
+        $form_container->output_row(
+            $lang->char_archive_admin_confirm_intro,
+            '',
+            '<strong>' . htmlspecialchars_uni($entry['username']) . '</strong> ('
+                . htmlspecialchars_uni($lang->char_archive_col_old_uid) . ': ' . (int)$entry['old_uid'] . ')'
+        );
+        $form_container->end();
+        $buttons = [
+            $form->generate_submit_button($lang->char_archive_admin_confirm_button, ['name' => 'do_recover']),
+        ];
+        $form->output_submit_wrapper($buttons);
+        $form->end();
+        echo '<p><a href="index.php?module=tools-char_archive">' . htmlspecialchars_uni($lang->char_archive_admin_cancel) . '</a></p>';
         $page->output_footer();
         return;
     }
@@ -234,45 +242,51 @@ $table = 'rpg_char_archive';
 $q = $db->simple_select($table, '*', 'approved=0', array('limit' => 50, 'order_by' => 'archived_at', 'order_dir' => 'DESC'));
 while($r = $db->fetch_array($q)) $pending[] = $r;
 
-// load language
-$lang->load('char_archive');
 
-// Build pending rows HTML using templates
-$rows_html = '';
-if(!empty($pending))
-{
-    $row_tpl = $templates->get('char_archive_admin_row');
-    foreach($pending as $p)
-    {
-        $aid = intval($p['aid']);
-        $username = htmlspecialchars_uni($p['username']);
-        $main_uid = intval($p['main_uid']);
-        $old_uid = intval($p['old_uid']);
-        $archived_at = date('Y-m-d H:i', $p['archived_at']);
-        $notes = nl2br(htmlspecialchars_uni((string)$p['notes']));
-        $snapshot_html = char_archive_admin_render_ucp_snapshot_html((string)$p['application_ucp_data']);
-        if($snapshot_html !== '')
-        {
-            $notes .= $snapshot_html;
-        }
-        $actions = '<a href="modcp.php?action=char_archive">' . htmlspecialchars($lang->char_archive_admin_open_modcp, ENT_QUOTES, 'UTF-8') . '</a>';
-        eval("\$rows_html .= \"" . $row_tpl . "\";");
-    }
-    $pending_table_tpl = $templates->get('char_archive_admin_pending_table');
-    $rows = $rows_html;
-    eval("\$pending_table = \"" . $pending_table_tpl . "\";");
-}
-else
-{
-    $pending_table = '<p>' . $lang->char_archive_pending_none . '</p>';
-}
-
-// Render main admin template via eval
-$main_tpl = $templates->get('char_archive_admin_main');
-$sync_form = $sync_html;
-eval("\$out = \"" . $main_tpl . "\";");
+// Render pending entries with the ACP table class (theme-consistent, forum time zone)
 $page->output_header($lang->char_archive_title);
-echo $out;
+
+$table = new Table;
+$table->construct_header($lang->char_archive_admin_col_aid, ['width' => '5%', 'class' => 'align_center']);
+$table->construct_header($lang->char_archive_col_username);
+$table->construct_header($lang->char_archive_admin_col_main_uid, ['class' => 'align_center']);
+$table->construct_header($lang->char_archive_col_old_uid, ['class' => 'align_center']);
+$table->construct_header($lang->char_archive_col_archived_at);
+$table->construct_header($lang->char_archive_col_notes, ['width' => '40%']);
+$table->construct_header($lang->char_archive_col_action, ['class' => 'align_center']);
+
+foreach($pending as $p)
+{
+    $notes = nl2br(htmlspecialchars_uni((string)$p['notes']));
+    $snapshot_html = char_archive_admin_render_ucp_snapshot_html((string)$p['application_ucp_data']);
+    if($snapshot_html !== '')
+    {
+        $notes .= $snapshot_html;
+    }
+    $main_uid = (int)$p['main_uid'];
+    $main_user = $main_uid > 0 ? get_user($main_uid) : null;
+    $main_label = $main_user
+        ? build_profile_link(htmlspecialchars_uni($main_user['username']), $main_uid, '_blank') . ' (' . $main_uid . ')'
+        : (string)$main_uid;
+
+    $table->construct_cell((int)$p['aid'], ['class' => 'align_center']);
+    $table->construct_cell(htmlspecialchars_uni($p['username']));
+    $table->construct_cell($main_label, ['class' => 'align_center']);
+    $table->construct_cell((int)$p['old_uid'], ['class' => 'align_center']);
+    $table->construct_cell(my_date('relative', (int)$p['archived_at']));
+    $table->construct_cell($notes);
+    $table->construct_cell('<a href="' . htmlspecialchars_uni($mybb->settings['bburl']) . '/modcp.php?action=char_archive">' . htmlspecialchars_uni($lang->char_archive_admin_open_modcp) . '</a>', ['class' => 'align_center']);
+    $table->construct_row();
+}
+
+if($table->num_rows() == 0)
+{
+    $table->construct_cell($lang->char_archive_pending_none, ['colspan' => 7]);
+    $table->construct_row();
+}
+
+echo $sync_html;
+$table->output($lang->char_archive_admin_pending_title);
 $page->output_footer();
 
 

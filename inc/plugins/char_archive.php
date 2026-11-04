@@ -832,10 +832,6 @@ function char_archive_templates_install()
             . '</table>',
 
         // admin templates
-        'char_archive_admin_main' => '<div class="wrap">' . "\n" . '<h1>{$lang->char_archive_admin_tools_title}</h1>' . "\n" . '{$sync_form}' . "\n" . '<br>' . "\n" . '<h2>{$lang->char_archive_admin_pending_title}</h2>' . "\n" . '{$pending_table}' . "\n" . '</div>',
-        'char_archive_admin_row' => '<tr style="border-top:1px solid #ccc;">' . "\n" . '<td>{$aid}</td><td>{$username}</td><td>{$main_uid}</td><td>{$old_uid}</td><td>{$archived_at}</td><td>{$notes}</td><td>{$actions}</td>' . "\n" . '</tr>',
-        'char_archive_admin_pending_table' => '<table class="tborder" style="width:100%;border-collapse:collapse;">' . "\n" . '<tr><th>{$lang->char_archive_admin_col_aid}</th><th>{$lang->char_archive_col_username}</th><th>{$lang->char_archive_admin_col_main_uid}</th><th>{$lang->char_archive_col_old_uid}</th><th>{$lang->char_archive_col_archived_at}</th><th>{$lang->char_archive_col_notes}</th><th>{$lang->char_archive_col_action}</th></tr>' . "\n" . '{$rows}' . "\n" . '</table>',
-        'char_archive_admin_confirm' => '<h2>{$lang->char_archive_confirm_title}</h2>' . "\n" . '<p>{$lang->char_archive_admin_confirm_intro} <strong>{$username}</strong> ({$lang->char_archive_col_old_uid}: {$old_uid})?</p>' . "\n" . '<form method="post" action="index.php?module=tools-char_archive&recover=1&aid={$aid}">' . "\n" . '<input type="hidden" name="my_post_key" value="{$my_post_key}">' . "\n" . '<input type="submit" name="do_recover" value="{$lang->char_archive_admin_confirm_button}"> <a href="index.php?module=tools-char_archive">{$lang->char_archive_admin_cancel}</a>' . "\n" . '</form>',
 
         // index/modcp templates
         'char_archive_index_alert' => '<div class="red_alert" style="margin:10px auto;max-width:1200px;">' . "\n"

@@ -42,6 +42,7 @@ $l['char_archive_alert_deleted_message'] = 'Your character {1} (old UID: {2}) wa
 $l['char_archive_status_pending'] = 'Pending';
 $l['char_archive_status_approved'] = 'Approved';
 $l['char_archive_btn_add'] = 'Add Former Character (pending approval)';
+$l['char_archive_btn_edit'] = 'Edit';
 $l['char_archive_btn_update'] = 'Update';
 $l['char_archive_btn_withdraw'] = 'Withdraw';
 $l['char_archive_btn_delete'] = 'Delete';

@@ -782,6 +782,8 @@ function char_archive_ucp_handle()
         $actions = '<div style="min-width:240px;">';
         $actions .= '<a href="usercp.php?action=char_archive&amp;view=' . $aid . '">' . htmlspecialchars_uni($lang->char_archive_btn_view) . '</a>';
         if((int)$entry['recovered_uid'] === 0) {
+            // Edit form collapsed by default, so the list stays compact.
+            $actions .= '<details style="margin:6px 0;"><summary style="cursor:pointer;">' . htmlspecialchars_uni($lang->char_archive_btn_edit) . '</summary>';
             $actions .= '<form method="post" action="usercp.php?action=char_archive" class="trow2" style="margin:8px 0;padding:8px;">';
             $actions .= '<input type="hidden" name="my_post_key" value="' . htmlspecialchars_uni($current_post_key) . '">';
             $actions .= '<input type="hidden" name="ca_action" value="edit_entry">';
@@ -792,6 +794,7 @@ function char_archive_ucp_handle()
             $actions .= '<div class="smalltext" style="margin:5px 0 2px;">' . htmlspecialchars_uni($lang->char_archive_col_notes) . '</div><textarea name="notes" rows="4" style="width:98%;box-sizing:border-box;">' . htmlspecialchars_uni($entry['notes']) . '</textarea>';
             $actions .= '<div style="margin-top:6px;"><input type="submit" class="button" value="' . htmlspecialchars_uni($lang->char_archive_btn_update) . '"></div>';
             $actions .= '</form>';
+            $actions .= '</details>';
         }
 
         // Delete / recover buttons side by side in one row.

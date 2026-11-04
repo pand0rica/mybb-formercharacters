@@ -42,6 +42,7 @@ $l['char_archive_alert_deleted_message'] = 'Dein Charakter {1} (alte UID: {2}) w
 $l['char_archive_status_pending'] = 'Ausstehend';
 $l['char_archive_status_approved'] = 'Freigegeben';
 $l['char_archive_btn_add'] = 'Ehemaligen Charakter hinzufügen (wartet auf Freigabe)';
+$l['char_archive_btn_edit'] = 'Bearbeiten';
 $l['char_archive_btn_update'] = 'Aktualisieren';
 $l['char_archive_btn_withdraw'] = 'Zurückziehen';
 $l['char_archive_btn_delete'] = 'Löschen';

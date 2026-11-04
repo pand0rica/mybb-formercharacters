@@ -23,12 +23,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `$templates->get()` (which already escapes for `eval()`), breaking quotes in the ACP output.
 - Direct `$mybb->input[...]` reads in ACP, ModCP, UserCP and hooks replaced by `get_input()`.
 - German text “einen Moderator informieren” → “das Team informieren”.
+- ACP *Tools → Character Archive* uses MyBB's ACP `Table`/`Form` classes instead of front-end templates with a bare HTML table: theme-consistent layout, archive date in the forum's time zone and date format (`my_date()`) instead of a raw `Y-m-d H:i` server time, main account shown as profile link. The recovery confirmation is an ACP form as well.
+- The “Open ModCP queue” link in the ACP pointed to `admin/modcp.php` (relative link); it now uses the board URL.
+- UserCP list: the edit form of each entry is collapsed behind an *Edit* toggle instead of always being expanded.
 
 ### Removed
 - **newreply post-key workaround.** `char_archive_global_start()` rewrote
   `$_POST/$_REQUEST/$mybb->input['my_post_key']` on every reply POST to repair malformed keys
   from another source. It interfered with MyBB's own CSRF handling and had nothing to do with
   the archive; the hook and `char_archive_normalize_newreply_post_key()` are gone.
+- Templates `char_archive_admin_main`, `char_archive_admin_row`, `char_archive_admin_pending_table` and `char_archive_admin_confirm` are no longer created (the ACP renders without them); uninstall still removes them from older installations.
 
 ### Changed
 - Plugin website set; README documents the debug settings; `.claudeignore` added.
