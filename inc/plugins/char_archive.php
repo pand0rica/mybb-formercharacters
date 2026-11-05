@@ -14,7 +14,7 @@ function char_archive_info()
         'website' => 'https://github.com/pand0rica/mybb-formercharacters',
         'author' => 'pand0rica',
         'authorsite' => 'https://github.com/pand0rica',
-        'version' => '0.2',
+        'version' => '1.0.0',
         'compatibility' => '18*'
     );
 }
