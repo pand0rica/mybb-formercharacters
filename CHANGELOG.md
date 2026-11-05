@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Security
+- **No more temporary plaintext passwords.** If an entry had no main account with a
+  password, recovery generated a random password, showed it in the ACP/UserCP and mailed
+  it in plain text (hashed with legacy `md5`). Recovery is now refused in that case with a
+  clear message; a recovered account always takes over the main account's password.
 - **Debug mode could be switched on by anyone.** `?char_archive_debug=1` (and a matching
   cookie) enabled debug logging for any visitor/member, writing request data – including
   post-key fragments – to `cache/char_archive_debug.log`. Fixed by removing the debug code

@@ -2074,16 +2074,15 @@ function char_archive_recover_entry($aid)
     }
     if(empty($email)) $email = 'recovered+' . $aid . '+' . TIME_NOW . '@local.invalid';
 
-    // Fallback credentials only if no main account credentials are available.
-    $plain_pass = '';
+    // The recovered account takes over the main account's password. Without a main
+    // account password there is no safe way to hand out credentials (no temporary
+    // plaintext passwords by mail or on screen) – refuse the recovery instead.
+    if($main_password_hash === '' || $main_salt === '')
+    {
+        return array('error' => 'no_main_account');
+    }
     $salt = $main_salt;
     $hashed_pw = $main_password_hash;
-    if($hashed_pw === '' || $salt === '')
-    {
-        $plain_pass = substr(md5(uniqid(mt_rand(), true)),0,12);
-        $salt = substr(md5(uniqid(mt_rand(), true)),0,8);
-        $hashed_pw = md5(md5($plain_pass) . $salt);
-    }
 
     // Generate a loginkey — MyBB uses this for session/switch validation.
     // Without it the AccountSwitcher cannot switch to this account and logs the user out.
@@ -2251,7 +2250,7 @@ function char_archive_recover_entry($aid)
     $table = 'rpg_char_archive';
     $db->update_query($table, array('recovered_uid'=>$new_uid), "aid={$aid}");
 
-    return array('new_uid'=>$new_uid,'password'=>$plain_pass,'uses_main_password'=>(($main_password_hash !== '' && $main_salt !== '') ? 1 : 0));
+    return array('new_uid'=>$new_uid);
 }
 
 /* Hook callbacks for deletion */

@@ -159,11 +159,13 @@ if($mybb->get_input('recover', MyBB::INPUT_INT) && $mybb->get_input('aid', MyBB:
 
     require_once MYBB_ROOT . 'inc/plugins/char_archive.php';
     $res = char_archive_recover_entry($aid);
-    if($res && is_array($res) && isset($res['new_uid']))
+    if(is_array($res) && isset($res['error']) && $res['error'] === 'no_main_account')
     {
-        $new_uid = $res['new_uid'];
-        $password = isset($res['password']) ? (string)$res['password'] : '';
-        $uses_main_password = !empty($res['uses_main_password']);
+        flash_message($lang->char_archive_admin_recovery_no_main_account, 'error');
+    }
+    elseif(is_array($res) && !empty($res['new_uid']))
+    {
+        $new_uid = (int)$res['new_uid'];
 
         // Notify main user via MyAlerts if available
         if($entry['main_uid'] && $db->table_exists('myalerts_alerts'))
@@ -180,46 +182,20 @@ if($mybb->get_input('recover', MyBB::INPUT_INT) && $mybb->get_input('aid', MyBB:
             $db->insert_query('myalerts_alerts', $ins);
         }
 
-        // Send email to main account if available
-        if(!empty($entry['main_uid']))
+        // Inform the main account by mail (no password is ever sent)
+        $main = $db->fetch_array($db->simple_select('users', 'email,uid', "uid=" . intval($entry['main_uid'])));
+        if($main && !empty($main['email']))
         {
-            $main = $db->fetch_array($db->simple_select('users', 'email,uid', "uid=" . intval($entry['main_uid'])));
-            if($main && !empty($main['email']))
-            {
-                require_once MYBB_ROOT . 'inc/functions_mail.php';
-                $subject = $lang->char_archive_admin_mail_subject;
-                if($uses_main_password)
-                {
-                    $message = str_replace(
-                        array('{1}', '{2}'),
-                        array($entry['username'], $new_uid),
-                        $lang->char_archive_admin_mail_message_same_password
-                    );
-                }
-                else
-                {
-                    $message = str_replace(
-                        array('{1}', '{2}', '{3}'),
-                        array($entry['username'], $new_uid, $password),
-                        $lang->char_archive_admin_mail_message
-                    );
-                }
-                my_mail($main['email'], $subject, $message);
-            }
+            require_once MYBB_ROOT . 'inc/functions_mail.php';
+            $message = str_replace(
+                array('{1}', '{2}'),
+                array($entry['username'], $new_uid),
+                $lang->char_archive_admin_mail_message_same_password
+            );
+            my_mail($main['email'], $lang->char_archive_admin_mail_subject, $message);
         }
 
-        // Also show success message to admin with credentials
-        if($uses_main_password)
-        {
-            $msg = str_replace('{1}', $new_uid, $lang->char_archive_recovery_success_admin_same_password);
-        }
-        else
-        {
-            $msg = $lang->char_archive_recovery_success_admin;
-            $msg = str_replace('{1}', $new_uid, $msg);
-            $msg = str_replace('{2}', htmlspecialchars_uni($password), $msg);
-        }
-        flash_message($msg, 'success');
+        flash_message(str_replace('{1}', $new_uid, $lang->char_archive_recovery_success_admin_same_password), 'success');
     }
     else
     {

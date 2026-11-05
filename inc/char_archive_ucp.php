@@ -422,20 +422,16 @@ function char_archive_ucp_handle()
             }
 
             $result = char_archive_recover_entry($aid);
+            if(is_array($result) && isset($result['error']) && $result['error'] === 'no_main_account') {
+                $msg = $lang->char_archive_recovery_no_main_account;
+                redirect('usercp.php?action=char_archive&ca_msg=' . rawurlencode($msg));
+            }
             if(!is_array($result) || (int)($result['new_uid'] ?? 0) <= 0) {
                 $msg = $lang->char_archive_recovery_failed_ucp;
                 redirect('usercp.php?action=char_archive&ca_msg=' . rawurlencode($msg));
             }
 
-            if(!empty($result['uses_main_password'])) {
-                $msg = str_replace('{1}', (int)$result['new_uid'], $lang->char_archive_recovery_success_ucp_same_password);
-            } else {
-                $msg = str_replace(
-                    array('{1}', '{2}'),
-                    array((int)$result['new_uid'], (string)$result['password']),
-                    $lang->char_archive_recovery_success_ucp
-                );
-            }
+            $msg = str_replace('{1}', (int)$result['new_uid'], $lang->char_archive_recovery_success_ucp_same_password);
             redirect('usercp.php?action=char_archive&ca_msg=' . rawurlencode($msg));
         }
 
