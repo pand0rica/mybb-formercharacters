@@ -222,7 +222,8 @@ function char_archive_remove_usercp_nav_link()
     require_once MYBB_ROOT . 'inc/adminfunctions_templates.php';
     find_replace_templatesets(
         'usercp_nav_misc',
-        '#' . preg_quote(char_archive_usercp_nav_template()) . '#i',
+        // Match by href + class so rows baked by older versions are removed as well.
+        '#<tr><td[^>]*><a href="usercp\.php\?action=char_archive" class="usercp_nav_item usercp_nav_char_archive"[^>]*>.*?</a></td></tr>#i',
         '',
         0
     );
@@ -230,7 +231,7 @@ function char_archive_remove_usercp_nav_link()
 
 function char_archive_usercp_nav_template()
 {
-    return '<tr><td class="trow1 smalltext"><a href="usercp.php?action=char_archive" class="usercp_nav_item usercp_nav_char_archive">{$lang->char_archive_title}</a></td></tr>';
+    return '<tr><td class="trow1 smalltext"><a href="usercp.php?action=char_archive" class="usercp_nav_item usercp_nav_char_archive" style="padding-left: 0;"><svg class="usercp_nav_icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true" style="vertical-align: -3px; margin-right: 6px;"><rect x="1.5" y="2.5" width="13" height="3.5" rx=".8" stroke-width="1.3"/><path d="M2.5 6v7a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V6M6 9h4" stroke-width="1.3"/></svg>{$lang->char_archive_title}</a></td></tr>';
 }
 
 function char_archive_settings_install()

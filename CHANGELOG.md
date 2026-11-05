@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **UserCP menu icon.** The Character Archive row in the UserCP navigation now has an inline SVG icon in the link colour (`currentColor`); rows baked by earlier versions are removed by href and class.
+
 ### Security
 - **No more temporary plaintext passwords.** If an entry had no main account with a
   password, recovery generated a random password, showed it in the ACP/UserCP and mailed
