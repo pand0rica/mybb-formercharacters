@@ -95,16 +95,16 @@ $sync_html = '';
 // (super-admin requirement already enforced above)
 
 // Handle approval actions
-if($mybb->input['approve'] && intval($mybb->input['aid']))
+if($mybb->get_input('approve') && $mybb->get_input('aid', MyBB::INPUT_INT))
 {
     flash_message($lang->char_archive_admin_approve_via_modcp, 'error');
     admin_redirect('index.php?module=tools-char_archive');
 }
 
 // Recover confirmation and action
-if(intval($mybb->input['recover']) && intval($mybb->input['aid']))
+if($mybb->get_input('recover', MyBB::INPUT_INT) && $mybb->get_input('aid', MyBB::INPUT_INT))
 {
-    $aid = intval($mybb->input['aid']);
+    $aid = $mybb->get_input('aid', MyBB::INPUT_INT);
     require_once MYBB_ROOT . 'inc/plugins/char_archive.php';
     if(!char_archive_table_exists())
     {
@@ -120,7 +120,7 @@ if(intval($mybb->input['recover']) && intval($mybb->input['aid']))
     }
 
     // Show confirmation form if not posted
-    if($mybb->request_method != 'post' || !isset($mybb->post['do_recover']))
+    if($mybb->request_method != 'post' || $mybb->get_input('do_recover') === '')
     {
         if(intval($entry['approved']) == 0)
         {
@@ -133,33 +133,39 @@ if(intval($mybb->input['recover']) && intval($mybb->input['aid']))
             admin_redirect('index.php?module=tools-char_archive');
         }
 
-        // render confirm template via eval inside ACP layout
-        $confirm_tpl = addslashes($templates->get('char_archive_admin_confirm'));
-        $username = htmlspecialchars_uni($entry['username']);
-        $old_uid = intval($entry['old_uid']);
-        $my_post_key = $mybb->post_code;
-        eval("\$confirm = \"" . $confirm_tpl . "\";");
         $page->output_header($lang->char_archive_title);
-        echo $confirm;
+        $form = new Form('index.php?module=tools-char_archive&amp;recover=1&amp;aid=' . $aid, 'post');
+        $form_container = new FormContainer($lang->char_archive_confirm_title);
+        $form_container->output_row(
+            $lang->char_archive_admin_confirm_intro,
+            '',
+            '<strong>' . htmlspecialchars_uni($entry['username']) . '</strong> ('
+                . htmlspecialchars_uni($lang->char_archive_col_old_uid) . ': ' . (int)$entry['old_uid'] . ')'
+        );
+        $form_container->end();
+        $buttons = [
+            $form->generate_submit_button($lang->char_archive_admin_confirm_button, ['name' => 'do_recover']),
+        ];
+        $form->output_submit_wrapper($buttons);
+        $form->end();
+        echo '<p><a href="index.php?module=tools-char_archive">' . htmlspecialchars_uni($lang->char_archive_admin_cancel) . '</a></p>';
         $page->output_footer();
         return;
     }
 
-    // POST: perform recovery
-    if(!isset($mybb->post['my_post_key']) || !verify_post_check($mybb->post['my_post_key']))
-    {
-        flash_message($lang->char_archive_invalid_post, 'error');
-        admin_redirect('index.php?module=tools-char_archive');
-    }
+    // POST: perform recovery – my_post_key was already validated by admin/index.php
+    // (an invalid key turns the request into GET and lands in the confirmation above).
     // Rely on MyBB admin permissions
 
     require_once MYBB_ROOT . 'inc/plugins/char_archive.php';
     $res = char_archive_recover_entry($aid);
-    if($res && is_array($res) && isset($res['new_uid']))
+    if(is_array($res) && isset($res['error']) && $res['error'] === 'no_main_account')
     {
-        $new_uid = $res['new_uid'];
-        $password = isset($res['password']) ? (string)$res['password'] : '';
-        $uses_main_password = !empty($res['uses_main_password']);
+        flash_message($lang->char_archive_admin_recovery_no_main_account, 'error');
+    }
+    elseif(is_array($res) && !empty($res['new_uid']))
+    {
+        $new_uid = (int)$res['new_uid'];
 
         // Notify main user via MyAlerts if available
         if($entry['main_uid'] && $db->table_exists('myalerts_alerts'))
@@ -176,46 +182,20 @@ if(intval($mybb->input['recover']) && intval($mybb->input['aid']))
             $db->insert_query('myalerts_alerts', $ins);
         }
 
-        // Send email to main account if available
-        if(!empty($entry['main_uid']))
+        // Inform the main account by mail (no password is ever sent)
+        $main = $db->fetch_array($db->simple_select('users', 'email,uid', "uid=" . intval($entry['main_uid'])));
+        if($main && !empty($main['email']))
         {
-            $main = $db->fetch_array($db->simple_select('users', 'email,uid', "uid=" . intval($entry['main_uid'])));
-            if($main && !empty($main['email']))
-            {
-                require_once MYBB_ROOT . 'inc/functions_mail.php';
-                $subject = $lang->char_archive_admin_mail_subject;
-                if($uses_main_password)
-                {
-                    $message = str_replace(
-                        array('{1}', '{2}'),
-                        array($entry['username'], $new_uid),
-                        $lang->char_archive_admin_mail_message_same_password
-                    );
-                }
-                else
-                {
-                    $message = str_replace(
-                        array('{1}', '{2}', '{3}'),
-                        array($entry['username'], $new_uid, $password),
-                        $lang->char_archive_admin_mail_message
-                    );
-                }
-                my_mail($main['email'], $subject, $message);
-            }
+            require_once MYBB_ROOT . 'inc/functions_mail.php';
+            $message = str_replace(
+                array('{1}', '{2}'),
+                array($entry['username'], $new_uid),
+                $lang->char_archive_admin_mail_message_same_password
+            );
+            my_mail($main['email'], $lang->char_archive_admin_mail_subject, $message);
         }
 
-        // Also show success message to admin with credentials
-        if($uses_main_password)
-        {
-            $msg = str_replace('{1}', $new_uid, $lang->char_archive_recovery_success_admin_same_password);
-        }
-        else
-        {
-            $msg = $lang->char_archive_recovery_success_admin;
-            $msg = str_replace('{1}', $new_uid, $msg);
-            $msg = str_replace('{2}', htmlspecialchars_uni($password), $msg);
-        }
-        flash_message($msg, 'success');
+        flash_message(str_replace('{1}', $new_uid, $lang->char_archive_recovery_success_admin_same_password), 'success');
     }
     else
     {
@@ -238,45 +218,51 @@ $table = 'rpg_char_archive';
 $q = $db->simple_select($table, '*', 'approved=0', array('limit' => 50, 'order_by' => 'archived_at', 'order_dir' => 'DESC'));
 while($r = $db->fetch_array($q)) $pending[] = $r;
 
-// load language
-$lang->load('char_archive');
 
-// Build pending rows HTML using templates
-$rows_html = '';
-if(!empty($pending))
-{
-    $row_tpl = addslashes($templates->get('char_archive_admin_row'));
-    foreach($pending as $p)
-    {
-        $aid = intval($p['aid']);
-        $username = htmlspecialchars_uni($p['username']);
-        $main_uid = intval($p['main_uid']);
-        $old_uid = intval($p['old_uid']);
-        $archived_at = date('Y-m-d H:i', $p['archived_at']);
-        $notes = (string)$p['notes'];
-        $snapshot_html = char_archive_admin_render_ucp_snapshot_html((string)$p['application_ucp_data']);
-        if($snapshot_html !== '')
-        {
-            $notes .= $snapshot_html;
-        }
-        $actions = '<a href="modcp.php?action=char_archive">' . htmlspecialchars($lang->char_archive_admin_open_modcp, ENT_QUOTES, 'UTF-8') . '</a>';
-        eval("\$rows_html .= \"" . $row_tpl . "\";");
-    }
-    $pending_table_tpl = addslashes($templates->get('char_archive_admin_pending_table'));
-    $rows = $rows_html;
-    eval("\$pending_table = \"" . $pending_table_tpl . "\";");
-}
-else
-{
-    $pending_table = '<p>' . $lang->char_archive_pending_none . '</p>';
-}
-
-// Render main admin template via eval
-$main_tpl = addslashes($templates->get('char_archive_admin_main'));
-$sync_form = $sync_html;
-eval("\$out = \"" . $main_tpl . "\";");
+// Render pending entries with the ACP table class (theme-consistent, forum time zone)
 $page->output_header($lang->char_archive_title);
-echo $out;
+
+$table = new Table;
+$table->construct_header($lang->char_archive_admin_col_aid, ['width' => '5%', 'class' => 'align_center']);
+$table->construct_header($lang->char_archive_col_username);
+$table->construct_header($lang->char_archive_admin_col_main_uid, ['class' => 'align_center']);
+$table->construct_header($lang->char_archive_col_old_uid, ['class' => 'align_center']);
+$table->construct_header($lang->char_archive_col_archived_at);
+$table->construct_header($lang->char_archive_col_notes, ['width' => '40%']);
+$table->construct_header($lang->char_archive_col_action, ['class' => 'align_center']);
+
+foreach($pending as $p)
+{
+    $notes = nl2br(htmlspecialchars_uni((string)$p['notes']));
+    $snapshot_html = char_archive_admin_render_ucp_snapshot_html((string)$p['application_ucp_data']);
+    if($snapshot_html !== '')
+    {
+        $notes .= $snapshot_html;
+    }
+    $main_uid = (int)$p['main_uid'];
+    $main_user = $main_uid > 0 ? get_user($main_uid) : null;
+    $main_label = $main_user
+        ? build_profile_link(htmlspecialchars_uni($main_user['username']), $main_uid, '_blank') . ' (' . $main_uid . ')'
+        : (string)$main_uid;
+
+    $table->construct_cell((int)$p['aid'], ['class' => 'align_center']);
+    $table->construct_cell(htmlspecialchars_uni($p['username']));
+    $table->construct_cell($main_label, ['class' => 'align_center']);
+    $table->construct_cell((int)$p['old_uid'], ['class' => 'align_center']);
+    $table->construct_cell(my_date('relative', (int)$p['archived_at']));
+    $table->construct_cell($notes);
+    $table->construct_cell('<a href="' . htmlspecialchars_uni($mybb->settings['bburl']) . '/modcp.php?action=char_archive">' . htmlspecialchars_uni($lang->char_archive_admin_open_modcp) . '</a>', ['class' => 'align_center']);
+    $table->construct_row();
+}
+
+if($table->num_rows() == 0)
+{
+    $table->construct_cell($lang->char_archive_pending_none, ['colspan' => 7]);
+    $table->construct_row();
+}
+
+echo $sync_html;
+$table->output($lang->char_archive_admin_pending_title);
 $page->output_footer();
 
 

@@ -264,8 +264,8 @@ function char_archive_ucp_handle()
     }
 
     $status_message = '';
-    if(!empty($mybb->input['ca_msg'])) {
-        $status_message = htmlspecialchars_uni((string)$mybb->input['ca_msg']);
+    if($mybb->get_input('ca_msg') !== '') {
+        $status_message = htmlspecialchars_uni($mybb->get_input('ca_msg'));
     }
 
     $raw_post = (isset($_POST) && is_array($_POST)) ? $_POST : array();
@@ -284,8 +284,8 @@ function char_archive_ucp_handle()
         $submitted_post_key = '';
         if(isset($raw_post['my_post_key'])) {
             $submitted_post_key = trim((string)$raw_post['my_post_key']);
-        } elseif(isset($mybb->post['my_post_key'])) {
-            $submitted_post_key = trim((string)$mybb->post['my_post_key']);
+        } else {
+            $submitted_post_key = trim($mybb->get_input('my_post_key'));
         }
         $submitted_post_key = trim($submitted_post_key, "\"'\\ ");
 
@@ -422,20 +422,16 @@ function char_archive_ucp_handle()
             }
 
             $result = char_archive_recover_entry($aid);
+            if(is_array($result) && isset($result['error']) && $result['error'] === 'no_main_account') {
+                $msg = $lang->char_archive_recovery_no_main_account;
+                redirect('usercp.php?action=char_archive&ca_msg=' . rawurlencode($msg));
+            }
             if(!is_array($result) || (int)($result['new_uid'] ?? 0) <= 0) {
                 $msg = $lang->char_archive_recovery_failed_ucp;
                 redirect('usercp.php?action=char_archive&ca_msg=' . rawurlencode($msg));
             }
 
-            if(!empty($result['uses_main_password'])) {
-                $msg = str_replace('{1}', (int)$result['new_uid'], $lang->char_archive_recovery_success_ucp_same_password);
-            } else {
-                $msg = str_replace(
-                    array('{1}', '{2}'),
-                    array((int)$result['new_uid'], (string)$result['password']),
-                    $lang->char_archive_recovery_success_ucp
-                );
-            }
+            $msg = str_replace('{1}', (int)$result['new_uid'], $lang->char_archive_recovery_success_ucp_same_password);
             redirect('usercp.php?action=char_archive&ca_msg=' . rawurlencode($msg));
         }
 
@@ -529,7 +525,7 @@ function char_archive_ucp_handle()
         return;
     }
 
-    $view_aid = isset($mybb->input['view']) ? (int)$mybb->input['view'] : 0;
+    $view_aid = $mybb->get_input('view', MyBB::INPUT_INT);
     if($view_aid > 0)
     {
         $entry = $db->fetch_array($db->simple_select('rpg_char_archive', '*', "aid={$view_aid} AND main_uid={$uid}", array('limit' => 1)));
@@ -782,6 +778,8 @@ function char_archive_ucp_handle()
         $actions = '<div style="min-width:240px;">';
         $actions .= '<a href="usercp.php?action=char_archive&amp;view=' . $aid . '">' . htmlspecialchars_uni($lang->char_archive_btn_view) . '</a>';
         if((int)$entry['recovered_uid'] === 0) {
+            // Edit form collapsed by default, so the list stays compact.
+            $actions .= '<details style="margin:6px 0;"><summary style="cursor:pointer;">' . htmlspecialchars_uni($lang->char_archive_btn_edit) . '</summary>';
             $actions .= '<form method="post" action="usercp.php?action=char_archive" class="trow2" style="margin:8px 0;padding:8px;">';
             $actions .= '<input type="hidden" name="my_post_key" value="' . htmlspecialchars_uni($current_post_key) . '">';
             $actions .= '<input type="hidden" name="ca_action" value="edit_entry">';
@@ -792,6 +790,7 @@ function char_archive_ucp_handle()
             $actions .= '<div class="smalltext" style="margin:5px 0 2px;">' . htmlspecialchars_uni($lang->char_archive_col_notes) . '</div><textarea name="notes" rows="4" style="width:98%;box-sizing:border-box;">' . htmlspecialchars_uni($entry['notes']) . '</textarea>';
             $actions .= '<div style="margin-top:6px;"><input type="submit" class="button" value="' . htmlspecialchars_uni($lang->char_archive_btn_update) . '"></div>';
             $actions .= '</form>';
+            $actions .= '</details>';
         }
 
         // Delete / recover buttons side by side in one row.

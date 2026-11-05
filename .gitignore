@@ -12,9 +12,6 @@ Thumbs.db
 # PHP
 *.log
 
-# Forum post (not source code)
-PLUGIN_POST.html
-
 # MyBB cache/temp
 cache/
 

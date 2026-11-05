@@ -22,7 +22,7 @@ A MyBB 1.8 plugin that archives former RPG sub-characters when they are deleted,
    - `inc/languages/deutsch_du/char_archive.lang.php`
    - `inc/languages/deutsch_du/admin/char_archive.lang.php`
 
-2. **Activate** – go to ACP → Configuration → Plugins → activate **Character Archive**.
+2. **Install & Activate** – go to ACP → Configuration → Plugins → click **Install & Activate** next to **Character Archive**.
    The archive table `rpg_char_archive` and plugin settings are created automatically.
 
 3. **Configure** – go to ACP → Configuration → Settings → **Character Archive** and adjust the settings.
@@ -83,7 +83,7 @@ Click **View details** next to any entry to see:
 **Recover an approved character (player-side):**
 1. UserCP → Archived Characters → find an approved entry
 2. Click **Recover** and confirm
-3. A new account is created. The temporary password or a notice that the main account password was reused is shown.
+3. A new account is created that uses the main account's password. Recovery is refused if the entry has no main account with a password – no temporary passwords are generated or mailed.
 
 ![UserCP: Character list](docs/screenshots/usercp-list.png)
 
@@ -109,7 +109,7 @@ Go to **ACP → Tools → Character Archive**.
 3. A new MyBB user is created with the archived username
 4. Posts and threads are remapped to the new UID
 5. Logbook entries (if table `mybb_logbook` exists) are remapped
-6. The archive entry is marked as recovered; the temporary password is displayed
+6. The archive entry is marked as recovered; the new account uses the main account's password (recovery is refused without one)
 
 The main account receives a MyAlerts notification and an email (if configured).
 

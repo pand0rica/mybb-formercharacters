@@ -25,15 +25,15 @@ function char_archive_modcp_handle()
     $status_message_html = '';
 
     $is_post_request = (strtolower((string)$mybb->request_method) === 'post');
-    $ca_action = isset($mybb->input['ca_action']) ? (string)$mybb->input['ca_action'] : '';
+    $ca_action = $mybb->get_input('ca_action');
 
     if($is_post_request && $ca_action === 'approve_entry') {
-        $submitted_post_key = isset($mybb->input['my_post_key']) ? (string)$mybb->input['my_post_key'] : '';
+        $submitted_post_key = $mybb->get_input('my_post_key');
         if($submitted_post_key === '' || !verify_post_check($submitted_post_key, true)) {
             redirect('modcp.php?action=char_archive', $lang->char_archive_invalid_post, 'error');
         }
 
-        $aid = isset($mybb->input['aid']) ? intval($mybb->input['aid']) : 0;
+        $aid = $mybb->get_input('aid', MyBB::INPUT_INT);
         if($aid <= 0) {
             redirect('modcp.php?action=char_archive', $lang->char_archive_invalid_entry_id, 'error');
         }
@@ -59,7 +59,7 @@ function char_archive_modcp_handle()
         $username = htmlspecialchars_uni($row['username']);
         $old_uid = intval($row['old_uid']);
         $archived_at = my_date('relative', intval($row['archived_at']));
-        $notes = (string)$row['notes'];
+        $notes = nl2br(htmlspecialchars_uni((string)$row['notes']));
 
         $actions = '';
         $actions .= '<form method="post" action="modcp.php?action=char_archive" style="margin:0;">';
