@@ -4,7 +4,7 @@
 - **Plugin prefix:** `char_archive`
 - **Main file:** `inc/plugins/char_archive.php`
 - **DB table:** `TABLE_PREFIX . 'rpg_char_archive'`
-- **Version:** 0.2
+- **Version:** 1.0.0
 
 ## File Layout
 ```

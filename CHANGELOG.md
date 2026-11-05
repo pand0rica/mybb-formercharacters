@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-05
+
 ### Fixed
 - **UserCP menu icon.** The Character Archive row in the UserCP navigation now has an inline SVG icon in the link colour (`currentColor`); rows baked by earlier versions are removed by href and class.
 
