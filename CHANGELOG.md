@@ -9,8 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Security
 - **Debug mode could be switched on by anyone.** `?char_archive_debug=1` (and a matching
   cookie) enabled debug logging for any visitor/member, writing request data – including
-  post-key fragments – to `cache/char_archive_debug.log`. Debug output now only follows the
-  admin setting *Debug mode* (or the `CHAR_ARCHIVE_DEBUG` constant).
+  post-key fragments – to `cache/char_archive_debug.log`. Fixed by removing the debug code
+  entirely (see *Removed*).
 - **Stored XSS in ModCP and ACP.** The notes of an archive entry (entered by members in the
   UserCP) were output unescaped in the ModCP approval list and the ACP pending list. They
   are now escaped with `htmlspecialchars_uni()`.
@@ -28,6 +28,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UserCP list: the edit form of each entry is collapsed behind an *Edit* toggle instead of always being expanded.
 
 ### Removed
+- **Debug code.** All debug logging (`char_archive_debug_*()` functions, ~50 log calls, the
+  HTML debug output on `misc.php`, the log file `cache/char_archive_debug.log`) and the two
+  settings *Debug mode* / *Debug: verbose field ID* are gone. Activating the new version
+  deletes the old debug settings; an existing `cache/char_archive_debug.log` can be deleted
+  by hand. Real errors during installation/activation are still written to the PHP error log.
 - **newreply post-key workaround.** `char_archive_global_start()` rewrote
   `$_POST/$_REQUEST/$mybb->input['my_post_key']` on every reply POST to repair malformed keys
   from another source. It interfered with MyBB's own CSRF handling and had nothing to do with
@@ -35,7 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Templates `char_archive_admin_main`, `char_archive_admin_row`, `char_archive_admin_pending_table` and `char_archive_admin_confirm` are no longer created (the ACP renders without them); uninstall still removes them from older installations.
 
 ### Changed
-- Plugin website set; README documents the debug settings; `.claudeignore` added.
+- Plugin website set; `.claudeignore` added.
 
 ## [0.2]
 

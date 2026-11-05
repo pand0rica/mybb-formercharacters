@@ -19,64 +19,10 @@ function char_archive_info()
     );
 }
 
-function char_archive_debug_bootstrap_enabled()
-{
-    // Debug nur über das Admin-Setting bzw. die Konstante – nie per Request/Cookie,
-    // sonst kann jede Person das Logging (inkl. Logdatei im cache/-Ordner) einschalten.
-    if(defined('CHAR_ARCHIVE_DEBUG') && CHAR_ARCHIVE_DEBUG)
-    {
-        return true;
-    }
-
-    return isset($GLOBALS['mybb']) && is_object($GLOBALS['mybb'])
-        && isset($GLOBALS['mybb']->settings['char_archive_debug_enabled'])
-        && (string)$GLOBALS['mybb']->settings['char_archive_debug_enabled'] === '1';
-}
-
-function char_archive_debug_bootstrap_log($message, $context = array())
-{
-    if(!char_archive_debug_bootstrap_enabled())
-    {
-        return;
-    }
-
-    if(!is_array($context))
-    {
-        $context = array('value' => $context);
-    }
-
-    $line = '[char_archive_debug] ' . date('Y-m-d H:i:s') . ' ' . (string)$message;
-    if(!empty($context))
-    {
-        $encoded_context = json_encode($context);
-        if($encoded_context !== false)
-        {
-            $line .= ' | ' . $encoded_context;
-        }
-    }
-
-    error_log($line);
-
-    if(defined('MYBB_ROOT'))
-    {
-        $log_file = MYBB_ROOT . 'cache/char_archive_debug.log';
-        @file_put_contents($log_file, $line . "\n", FILE_APPEND);
-    }
-}
-
 /* Register hooks */
 global $plugins;
 if(isset($plugins))
 {
-    char_archive_debug_bootstrap_log('bootstrap:plugin_file_loaded', array(
-        'debug_build' => '2026-04-06-b',
-        'script' => defined('THIS_SCRIPT') ? (string)THIS_SCRIPT : '',
-        'request_method' => isset($_SERVER['REQUEST_METHOD']) ? (string)$_SERVER['REQUEST_METHOD'] : '',
-        'request_uri' => isset($_SERVER['REQUEST_URI']) ? (string)$_SERVER['REQUEST_URI'] : '',
-        'action' => isset($_REQUEST['action']) ? (string)$_REQUEST['action'] : '',
-        'has_post_key' => isset($_POST['my_post_key']) ? 1 : 0,
-    ));
-
     // Fires inside UserDataHandler::delete_user() before any data is removed.
     // Covers all deletion paths: ACP single, ACP bulk inline, user merge, frontend.
     $plugins->add_hook('datahandler_user_delete_start', 'char_archive_hook_datahandler_delete_start');
@@ -123,10 +69,6 @@ function char_archive_usercp_start()
 {
     global $mybb;
 
-    char_archive_debug_log('hook:usercp_start', char_archive_debug_request_context(array(
-        'input_action' => $mybb->get_input('action'),
-    )));
-
     if($mybb->get_input('action') === 'char_archive')
     {
         require_once MYBB_ROOT . 'inc/char_archive_ucp.php';
@@ -148,8 +90,6 @@ function char_archive_usercp_menu()
 function char_archive_install()
 {
     global $db;
-
-    char_archive_debug_log('lifecycle:install:start', char_archive_debug_request_context());
 
     if(!$db->table_exists('rpg_char_archive'))
     {
@@ -192,9 +132,6 @@ function char_archive_install()
     }
 
     char_archive_settings_install();
-    char_archive_debug_log('lifecycle:install:done', char_archive_debug_request_context(array(
-        'table_exists' => $db->table_exists('rpg_char_archive') ? 1 : 0,
-    )));
 }
 
 function char_archive_is_installed()
@@ -207,10 +144,6 @@ function char_archive_uninstall()
 {
     global $db;
 
-    char_archive_debug_log('lifecycle:uninstall:start', char_archive_debug_request_context(array(
-        'table_exists_before' => $db->table_exists('rpg_char_archive') ? 1 : 0,
-    )));
-
     $db->write_query("DROP TABLE IF EXISTS " . TABLE_PREFIX . "rpg_char_archive");
     char_archive_templates_uninstall();
     char_archive_remove_usercp_nav_link();
@@ -219,16 +152,11 @@ function char_archive_uninstall()
     char_archive_settings_uninstall();
     if(class_exists('cache')) $GLOBALS['cache']->delete('char_archive_data');
 
-    char_archive_debug_log('lifecycle:uninstall:done', char_archive_debug_request_context(array(
-        'table_exists_after' => $db->table_exists('rpg_char_archive') ? 1 : 0,
-    )));
 }
 
 function char_archive_activate()
 {
     $errors = array();
-
-    char_archive_debug_log('lifecycle:activate:start', char_archive_debug_request_context());
 
     try {
         char_archive_install();
@@ -266,25 +194,17 @@ function char_archive_activate()
         flash_message('Character Archive: activation completed with errors – check server error log. (' . implode('; ', $errors) . ')', 'error');
     }
 
-    char_archive_debug_log('lifecycle:activate:done', char_archive_debug_request_context(array(
-        'errors' => $errors,
-    )));
 }
 
 function char_archive_deactivate()
 {
-    char_archive_debug_log('lifecycle:deactivate:start', char_archive_debug_request_context());
-
     char_archive_templates_uninstall();
     char_archive_remove_usercp_nav_link();
     char_archive_remove_index_alert_placeholder();
     char_archive_remove_modcp_nav_link();
     // Rebuild the AccountSwitcher cache in case it was corrupted by this plugin
-    $refresh_ok = char_archive_refresh_accountswitcher_cache();
+    char_archive_refresh_accountswitcher_cache();
 
-    char_archive_debug_log('lifecycle:deactivate:done', char_archive_debug_request_context(array(
-        'accountswitcher_refresh_ok' => $refresh_ok ? 1 : 0,
-    )));
 }
 
 function char_archive_add_usercp_nav_link()
@@ -375,39 +295,8 @@ function char_archive_settings_install()
         $db->update_query('settings', array('optionscode' => $summary_options, 'gid' => $gid), "name='" . $db->escape_string($summary_setting_name) . "'");
     }
 
-    $debug_enabled_name = 'char_archive_debug_enabled';
-    $debug_enabled_exists = intval($db->fetch_field($db->simple_select('settings', 'COUNT(*) as c', "name='" . $db->escape_string($debug_enabled_name) . "'"), 'c'));
-    if($debug_enabled_exists === 0)
-    {
-        $debug_enabled_setting = array(
-            'name' => $debug_enabled_name,
-            'title' => 'Debug mode',
-            'description' => 'Enable diagnostic logging for Character Archive. Writes to cache/char_archive_debug.log.',
-            'optionscode' => 'yesno',
-            'value' => '0',
-            'disporder' => 3,
-            'gid' => $gid,
-            'isdefault' => 0
-        );
-        $db->insert_query('settings', $debug_enabled_setting);
-    }
-
-    $verbose_fieldid_name = 'char_archive_debug_verbose_fieldid';
-    $verbose_exists = intval($db->fetch_field($db->simple_select('settings', 'COUNT(*) as c', "name='" . $db->escape_string($verbose_fieldid_name) . "'"), 'c'));
-    if($verbose_exists === 0)
-    {
-        $verbose_setting = array(
-            'name' => $verbose_fieldid_name,
-            'title' => 'Debug: verbose field ID',
-            'description' => 'Field ID that triggers verbose debug output during recovery (e.g. the main bio field). Set to 0 to disable. Only relevant when debug mode is active.',
-            'optionscode' => 'text',
-            'value' => '0',
-            'disporder' => 4,
-            'gid' => $gid,
-            'isdefault' => 0
-        );
-        $db->insert_query('settings', $verbose_setting);
-    }
+    // Debug-Settings früherer Versionen entfernen (Debug-Code ist ausgebaut)
+    $db->delete_query('settings', "name IN ('char_archive_debug_enabled','char_archive_debug_verbose_fieldid')");
 
     if(function_exists('rebuild_settings'))
     {
@@ -627,8 +516,6 @@ function char_archive_index_start()
 {
     global $mybb, $templates, $char_archive_index_alert, $lang;
 
-    char_archive_debug_log('hook:index_start', char_archive_debug_request_context());
-
     $char_archive_index_alert = '';
     if(!char_archive_user_can_approve())
     {
@@ -650,10 +537,6 @@ function char_archive_index_start()
 function char_archive_modcp_start()
 {
     global $mybb, $lang;
-
-    char_archive_debug_log('hook:modcp_start', char_archive_debug_request_context(array(
-        'input_action' => $mybb->get_input('action'),
-    )));
 
     // Load language for all ModCP pages so the injected nav label is always available.
     $lang->load('char_archive');
@@ -981,174 +864,19 @@ function char_archive_table_has_column($table_name, $column)
     return $has_column;
 }
 
-function char_archive_debug_enabled()
-{
-    // Nur Konstante oder Admin-Setting – keine URL-/Cookie-Schalter (siehe bootstrap).
-    return char_archive_debug_bootstrap_enabled();
-}
-
-function char_archive_debug_echo($line)
-{
-    if(!char_archive_debug_enabled())
-    {
-        return;
-    }
-
-    // Only print echo debug output on misc pages to avoid breaking ACP/UCP flows.
-    if(!defined('THIS_SCRIPT') || THIS_SCRIPT !== 'misc.php')
-    {
-        return;
-    }
-
-    static $header_printed = false;
-    $line = (string)$line;
-    if(function_exists('htmlspecialchars_uni'))
-    {
-        $safe = htmlspecialchars_uni($line);
-    }
-    else
-    {
-        $safe = htmlspecialchars($line, ENT_QUOTES, 'UTF-8');
-    }
-
-    if(!$header_printed)
-    {
-        echo '<div style="background:#111;color:#7CFC00;padding:8px 10px;font:12px/1.4 monospace;border:1px solid #333;margin:8px 0;">char_archive debug output</div>';
-        $header_printed = true;
-    }
-
-    echo '<div style="background:#111;color:#7CFC00;padding:4px 10px;font:12px/1.4 monospace;border-left:1px solid #333;border-right:1px solid #333;">' . $safe . '</div>';
-}
-
-function char_archive_debug_log($message, $context = array())
-{
-    if(!char_archive_debug_enabled())
-    {
-        return;
-    }
-
-    $message = (string)$message;
-    if(!is_array($context))
-    {
-        $context = array('value' => $context);
-    }
-
-    $line = '[char_archive_debug] ' . date('Y-m-d H:i:s') . ' ' . $message;
-    if(!empty($context))
-    {
-        $encoded_context = json_encode($context);
-        if($encoded_context !== false)
-        {
-            $line .= ' | ' . $encoded_context;
-        }
-    }
-
-    char_archive_debug_echo($line);
-
-    error_log($line);
-
-    if(defined('MYBB_ROOT'))
-    {
-        $log_file = MYBB_ROOT . 'cache/char_archive_debug.log';
-        @file_put_contents($log_file, $line . "\n", FILE_APPEND);
-    }
-}
-
-function char_archive_debug_request_context($extra = array())
-{
-    global $mybb;
-
-    $post_key = isset($_POST['my_post_key']) ? (string)$_POST['my_post_key'] : '';
-    $hex_chars = '';
-    if($post_key !== '')
-    {
-        $hex_chars = preg_replace('/[^a-f0-9]/i', '', $post_key);
-    }
-
-    $context = array(
-        'script' => defined('THIS_SCRIPT') ? (string)THIS_SCRIPT : '',
-        'request_method' => isset($_SERVER['REQUEST_METHOD']) ? strtolower((string)$_SERVER['REQUEST_METHOD']) : '',
-        'request_uri' => isset($_SERVER['REQUEST_URI']) ? (string)$_SERVER['REQUEST_URI'] : '',
-        'input_action' => (isset($mybb) && isset($mybb->input['action'])) ? (string)$mybb->input['action'] : '',
-        'uid' => (isset($mybb) && isset($mybb->user['uid'])) ? (int)$mybb->user['uid'] : 0,
-        'has_post_key' => isset($_POST['my_post_key']) ? 1 : 0,
-        'post_key_length' => isset($_POST['my_post_key']) ? strlen((string)$_POST['my_post_key']) : 0,
-        'post_key_hex_length' => ($hex_chars !== '') ? strlen($hex_chars) : 0,
-        'post_keys' => char_archive_debug_collect_post_keys(),
-    );
-
-    if(!empty($extra) && is_array($extra))
-    {
-        $context = array_merge($context, $extra);
-    }
-
-    return $context;
-}
-
-function char_archive_debug_collect_post_keys()
-{
-    $keys = array();
-    if(empty($_POST) || !is_array($_POST))
-    {
-        return $keys;
-    }
-
-    foreach($_POST as $key => $value)
-    {
-        $key = (string)$key;
-        if($key === 'message' || $key === 'subject')
-        {
-            continue;
-        }
-
-        if($key === 'my_post_key')
-        {
-            $keys[$key] = 'len:' . strlen((string)$value);
-            continue;
-        }
-
-        if(is_scalar($value) || $value === null)
-        {
-            $keys[$key] = substr((string)$value, 0, 80);
-            continue;
-        }
-
-        if(is_array($value))
-        {
-            $keys[$key] = 'array(' . count($value) . ')';
-            continue;
-        }
-
-        $keys[$key] = gettype($value);
-    }
-
-    return $keys;
-}
-
 function char_archive_refresh_accountswitcher_cache()
 {
-    char_archive_debug_log('accountswitcher_cache:refresh:start', char_archive_debug_request_context());
-
     $class_file = defined('MYBB_ROOT')
         ? MYBB_ROOT . 'inc/plugins/accountswitcher/class_accountswitcher.php'
         : '';
 
     if($class_file === '' || !file_exists($class_file))
     {
-        char_archive_debug_log('accountswitcher_cache:refresh:skip_missing_class_file', char_archive_debug_request_context(array(
-            'class_file' => $class_file,
-        )));
         return false;
     }
 
     if(!isset($GLOBALS['mybb']) || !isset($GLOBALS['db']) || !isset($GLOBALS['cache']) || !isset($GLOBALS['templates']))
     {
-        char_archive_debug_log('accountswitcher_cache:refresh:skip_missing_globals', array(
-            'has_mybb' => isset($GLOBALS['mybb']) ? 1 : 0,
-            'has_db' => isset($GLOBALS['db']) ? 1 : 0,
-            'has_cache' => isset($GLOBALS['cache']) ? 1 : 0,
-            'has_templates' => isset($GLOBALS['templates']) ? 1 : 0,
-        ));
         return false;
     }
 
@@ -1159,15 +887,11 @@ function char_archive_refresh_accountswitcher_cache()
 
     if(!class_exists('AccountSwitcher'))
     {
-        char_archive_debug_log('accountswitcher_cache:refresh:skip_class_not_loaded', char_archive_debug_request_context(array(
-            'class_file' => $class_file,
-        )));
         return false;
     }
 
     $eas = new AccountSwitcher($GLOBALS['mybb'], $GLOBALS['db'], $GLOBALS['cache'], $GLOBALS['templates']);
     $eas->update_accountswitcher_cache();
-    char_archive_debug_log('accountswitcher_cache:refresh:done', char_archive_debug_request_context());
     return true;
 }
 
@@ -1323,7 +1047,6 @@ function char_archive_refresh_newest_user_stats($new_uid, $username)
         }
     }
 
-    char_archive_debug_log('recover_entry:newest_member_refreshed', array('lastuid' => $newest_uid, 'lastusername' => $newest_username, 'settings_updated' => $settings_updated));
     return true;
 }
 
@@ -1414,7 +1137,6 @@ function char_archive_backup_avatar_file($avatar, $uid)
 
     @chmod($target_abs, 0644);
     $backup_rel = $backup_dir_rel . '/' . $filename;
-    char_archive_debug_log('archive_user:avatar_backed_up', array('uid' => $uid, 'source' => $source_file, 'backup_rel' => $backup_rel));
     return $backup_rel;
 }
 
@@ -1506,7 +1228,6 @@ function char_archive_restore_avatar_for_user_with_meta($uid, $avatar, $avatarty
         if($avatar_backup !== '' && char_archive_resolve_local_avatar_path($avatar_backup) !== '')
         {
             $selected_avatar = $avatar_backup;
-            char_archive_debug_log('recover_entry:avatar_using_backup', array('uid' => $uid, 'backup' => $avatar_backup));
         }
     }
 
@@ -1543,7 +1264,6 @@ function char_archive_restore_avatar_for_user_with_meta($uid, $avatar, $avatarty
     }
 
     $db->update_query('users', $update, "uid={$uid}");
-    char_archive_debug_log('recover_entry:avatar_restored', array('uid' => $uid, 'avatar_head' => substr($selected_avatar, 0, 120), 'len' => strlen($selected_avatar), 'avatartype' => (string)($update['avatartype'] ?? ''), 'avatardimensions' => (string)($update['avatardimensions'] ?? '')));
     return true;
 }
 
@@ -1888,19 +1608,15 @@ function char_archive_collect_application_ucp_snapshot($uid)
         );
     }
 
-    char_archive_debug_log('collect_snapshot:' . (empty($rows) ? 'empty' : 'captured'), array('uid' => $uid, 'rows' => count($rows)));
-
     return $rows;
 }
 
 function char_archive_decode_application_ucp_data($raw)
 {
     $raw = (string)$raw;
-    char_archive_debug_log('decode_application_ucp_data:start', array('raw_len' => strlen($raw), 'raw_md5' => md5($raw)));
 
     if(trim($raw) === '')
     {
-        char_archive_debug_log('decode_application_ucp_data:empty_raw');
         return array('tables' => array());
     }
 
@@ -1977,11 +1693,9 @@ function char_archive_decode_application_ucp_data($raw)
 
         if(!empty($salvaged_rows))
         {
-            char_archive_debug_log('decode_application_ucp_data:salvaged_rows', array('rows' => count($salvaged_rows)));
             return array('tables' => array('application_ucp_userfields' => $salvaged_rows));
         }
 
-        char_archive_debug_log('decode_application_ucp_data:failed', array('json_error' => function_exists('json_last_error_msg') ? json_last_error_msg() : json_last_error()));
         return array('tables' => array());
     }
 
@@ -1997,7 +1711,6 @@ function char_archive_decode_application_ucp_data($raw)
                 $rows[] = $row;
             }
         }
-        char_archive_debug_log('decode_application_ucp_data:flat_format', array('rows' => count($rows)));
         return array('tables' => array('application_ucp_userfields' => $rows));
     }
 
@@ -2023,8 +1736,6 @@ function char_archive_decode_application_ucp_data($raw)
             }
         }
     }
-
-    char_archive_debug_log('decode_application_ucp_data:success', array('table_count' => count($normalized_tables), 'ucp_rows' => count($normalized_tables['application_ucp_userfields'] ?? array())));
 
     return array('tables' => $normalized_tables);
 }
@@ -2327,27 +2038,21 @@ function char_archive_recover_entry($aid)
 {
     global $db, $mybb;
     $aid = intval($aid); if($aid<=0) return false;
-    char_archive_debug_log('recover_entry:start', array('aid' => $aid));
 
     $table = 'rpg_char_archive';
     $entry = $db->fetch_array($db->simple_select($table,'*',"aid={$aid}"));
     if(!$entry)
     {
-        char_archive_debug_log('recover_entry:abort_no_entry', array('aid' => $aid));
         return false;
     }
     if(intval($entry['recovered_uid'])>0)
     {
-        char_archive_debug_log('recover_entry:abort_already_recovered', array('aid' => $aid, 'recovered_uid' => intval($entry['recovered_uid'])));
         return false;
     }
     if(intval($entry['approved'])==0)
     {
-        char_archive_debug_log('recover_entry:abort_not_approved', array('aid' => $aid));
         return false;
     }
-
-    char_archive_debug_log('recover_entry:entry_loaded', array('aid' => $aid, 'old_uid' => intval($entry['old_uid']), 'raw_appdata_len' => strlen((string)$entry['application_ucp_data']), 'raw_appdata_md5' => md5((string)$entry['application_ucp_data'])));
 
     $desired_username = $entry['username'] ?: ('recovered_'.$aid);
     $base = $desired_username; $i=0;
@@ -2406,7 +2111,6 @@ function char_archive_recover_entry($aid)
 
     $db->insert_query('users', $user_insert);
     $new_uid = $db->insert_id(); if(!$new_uid) return false;
-    char_archive_debug_log('recover_entry:user_created', array('aid' => $aid, 'new_uid' => intval($new_uid), 'username' => (string)$desired_username));
 
     if(!empty($entry['avatar']) || !empty($entry['avatar_backup']))
     {
@@ -2447,8 +2151,6 @@ function char_archive_recover_entry($aid)
             $ucp_rows = $decoded['tables']['application_ucp_userfields'];
         }
 
-        char_archive_debug_log('recover_entry:ucp_rows_decoded', array('aid' => $aid, 'new_uid' => intval($new_uid), 'rows' => count($ucp_rows)));
-
         if(!empty($ucp_rows))
         {
             // Determine the value column name in the live table
@@ -2462,11 +2164,8 @@ function char_archive_recover_entry($aid)
                 }
             }
 
-            char_archive_debug_log('recover_entry:ucp_value_column', array('aid' => $aid, 'new_uid' => intval($new_uid), 'value_column' => $value_column));
-
             if($value_column !== '')
             {
-                char_archive_debug_log('recover_entry:ucp_restoring', array('aid' => $aid, 'new_uid' => intval($new_uid), 'rows' => count($ucp_rows)));
                 $db->delete_query('application_ucp_userfields', "uid={$new_uid}");
                 $insert_count = 0;
                 $skip_empty_row = 0;
@@ -2527,13 +2226,6 @@ function char_archive_recover_entry($aid)
 
                     $field_value = char_archive_fix_bare_unicode_escapes($field_value);
 
-                    $field_len = strlen($field_value);
-                    $verbose_field_id = intval($GLOBALS['mybb']->settings['char_archive_debug_verbose_fieldid'] ?? 0);
-                    if(($verbose_field_id > 0 && $field_id === $verbose_field_id) || $field_len > 200)
-                    {
-                        char_archive_debug_log('recover_entry:row_insert_preview', array('aid' => $aid, 'new_uid' => intval($new_uid), 'fieldid' => $field_id, 'value_len' => $field_len, 'value_head' => substr($field_value, 0, 120)));
-                    }
-
                     $db->insert_query('application_ucp_userfields', array(
                         'uid'        => $new_uid,
                         'fieldid'    => $field_id,
@@ -2541,22 +2233,8 @@ function char_archive_recover_entry($aid)
                     ));
                     $insert_count++;
                 }
-                char_archive_debug_log('recover_entry:ucp_inserted', array('aid' => $aid, 'new_uid' => intval($new_uid), 'inserted' => $insert_count));
-                char_archive_debug_log('recover_entry:ucp_restore_done', array('aid' => $aid, 'new_uid' => intval($new_uid), 'inserted' => $insert_count, 'skip_empty_row' => $skip_empty_row, 'skip_bad_fieldid' => $skip_bad_fieldid, 'skip_zero_fieldid' => $skip_zero_fieldid, 'skip_no_value' => $skip_no_value));
-            }
-            else
-            {
-                char_archive_debug_log('recover_entry:ucp_restore_aborted_no_value_column', array('aid' => $aid, 'new_uid' => intval($new_uid)));
             }
         }
-        else
-        {
-            char_archive_debug_log('recover_entry:ucp_restore_aborted_no_rows', array('aid' => $aid, 'new_uid' => intval($new_uid)));
-        }
-    }
-    else
-    {
-        char_archive_debug_log('recover_entry:ucp_restore_skipped_guard_failed', array('aid' => $aid, 'new_uid' => intval($new_uid), 'has_appdata' => (isset($entry['application_ucp_data']) && $entry['application_ucp_data'] !== null && (string)$entry['application_ucp_data'] !== '') ? 1 : 0, 'table_exists' => $db->table_exists('application_ucp_userfields') ? 1 : 0, 'has_fieldid' => char_archive_table_has_column('application_ucp_userfields', 'fieldid') ? 1 : 0));
     }
 
     $old_uid = intval($entry['old_uid']);
@@ -2572,8 +2250,6 @@ function char_archive_recover_entry($aid)
     // mark recovered
     $table = 'rpg_char_archive';
     $db->update_query($table, array('recovered_uid'=>$new_uid), "aid={$aid}");
-
-    char_archive_debug_log('recover_entry:done', array('aid' => $aid, 'new_uid' => intval($new_uid)));
 
     return array('new_uid'=>$new_uid,'password'=>$plain_pass,'uses_main_password'=>(($main_password_hash !== '' && $main_salt !== '') ? 1 : 0));
 }
@@ -3104,28 +2780,9 @@ function char_archive_playerdirectory_calculate_archived_inplay_totals($archived
             $post_count = $fallback_post_count;
         }
 
-        char_archive_debug_log('playerdirectory:archived_character_totals', array(
-            'old_uid' => $old_uid,
-            'username' => $username,
-            'tracker' => $inplaytrackersystem,
-            'scene_tids_count' => count($scene_tids),
-            'scene_count_final' => max(0, $scene_count),
-            'post_count_final' => max(0, $post_count),
-            'source' => $calc_source,
-            'fallback_threadnum' => $fallback_scene_count,
-            'fallback_postnum' => $fallback_post_count,
-        ));
-
         $total_scenes += max(0, $scene_count);
         $total_posts += max(0, $post_count);
     }
-
-    char_archive_debug_log('playerdirectory:archived_totals_final', array(
-        'tracker' => $inplaytrackersystem,
-        'count' => $count,
-        'postnum' => $total_posts,
-        'threadnum' => $total_scenes,
-    ));
 
     return array(
         'count' => $count,
@@ -3170,13 +2827,6 @@ function char_archive_playerdirectory_directory_user_stats(&$payload)
     $payload['allinplayposts'] = intval($payload['allinplayposts'] ?? 0) + intval($totals['postnum']);
     $payload['allinplayscenes'] = intval($payload['allinplayscenes'] ?? 0) + intval($totals['threadnum']);
 
-    char_archive_debug_log('playerdirectory:directory_hook_after_add', array(
-        'main_uid' => $main_uid,
-        'add_posts' => intval($totals['postnum']),
-        'add_scenes' => intval($totals['threadnum']),
-        'result_posts' => intval($payload['allinplayposts']),
-        'result_scenes' => intval($payload['allinplayscenes']),
-    ));
 }
 
 function char_archive_playerdirectory_playerstat_characters_html(&$payload)
@@ -3334,13 +2984,6 @@ function char_archive_playerdirectory_playerstat_totals(&$payload)
         ? number_format($new_scenes, 0, ',', '.')
         : '0';
 
-    char_archive_debug_log('playerdirectory:playerstat_totals_hook', array(
-        'main_uid' => $main_uid,
-        'add_posts' => intval($totals['postnum']),
-        'add_scenes' => intval($totals['threadnum']),
-        'result_posts' => $new_posts,
-        'result_scenes' => $new_scenes,
-    ));
 }
 
 ?>
