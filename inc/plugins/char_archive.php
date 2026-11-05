@@ -209,12 +209,9 @@ function char_archive_deactivate()
 
 function char_archive_add_usercp_nav_link()
 {
-    require_once MYBB_ROOT . 'inc/adminfunctions_templates.php';
-    find_replace_templatesets(
-        'usercp_nav_misc',
-        '#' . preg_quote('<tr><td class="trow1 smalltext"><a href="usercp.php?action=drafts" class="usercp_nav_item usercp_nav_drafts">{$draftcount}</a></td></tr>') . '#i',
-        '<tr><td class="trow1 smalltext"><a href="usercp.php?action=drafts" class="usercp_nav_item usercp_nav_drafts">{$draftcount}</a></td></tr>' . char_archive_usercp_nav_template()
-    );
+    // h4w: the menu row lives in the RPG category templates (usercp_nav_rpg_*), not in usercp_nav_misc.
+    // Only clean up rows baked into usercp_nav_misc by earlier versions.
+    char_archive_remove_usercp_nav_link();
 }
 
 function char_archive_remove_usercp_nav_link()
